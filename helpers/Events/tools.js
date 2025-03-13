@@ -7,6 +7,7 @@ const { musixSearch } = await (fol[2] + 'musixsearch.js').r()
 const { transcribe } = await (fol[2] + 'transcribe.js').r()
 const { tmpFiles } = await (fol[0] + 'tmpfiles.js').r()
 const { catbox } = await (fol[0] + 'catbox.js').r()
+const { TermaiCdn } = await (fol[0] + 'cdn.termai.js').r()
 const { EncryptJs } = await (fol[2] + 'encrypt.js').r()
 
 /*!-======[ Default Export Function ]======-!*/
@@ -26,7 +27,7 @@ export default async function on({ cht, Exp, store, ev, is }) {
     }, async({ media }) => {
        const _key = keys[sender]
          await cht.edit("Bntr...", _key)
-       let tph = await catbox(media)
+       let tph = await TermaiCdn(media)
          await cht.edit('Processing...', _key)
        let res = (await fetch(api.xterm.url + "/api/tools/remini?url=" + tph + "&key=" + api.xterm.key).then(a => a.json())).data
          await Exp.sendMessage(id, { image: { url: res.url }, caption: `Response Time: ${res.run_Time}`}, { quoted: cht })
@@ -46,8 +47,8 @@ export default async function on({ cht, Exp, store, ev, is }) {
 	})
 	
 	ev.on({ 
-        cmd: ['tourl','catbox'],
-        listmenu: ['tourl','catbox'],
+        cmd: ['catbox'],
+        listmenu: ['catbox'],
         tag: 'tools',
         energy: 5,
         media: { 
@@ -55,6 +56,18 @@ export default async function on({ cht, Exp, store, ev, is }) {
         }
     }, async({ media }) => {
         let tmp = await catbox(media)
+            await cht.edit(tmp, keys[sender])
+	})
+	ev.on({ 
+        cmd: ['tourl'],
+        listmenu: ['tourl','termaicdn'],
+        tag: 'tools',
+        energy: 5,
+        media: { 
+           type: ["image","sticker","audio","video","document"]
+        }
+    }, async({ media }) => {
+        let tmp = await TermaiCdn(media)
             await cht.edit(tmp, keys[sender])
 	})
 
@@ -68,7 +81,7 @@ export default async function on({ cht, Exp, store, ev, is }) {
         }
     }, async({ media }) => {
         await cht.edit("Bntr...", keys[sender])
-        let tph = await catbox(media)
+        let tph = await TermaiCdn(media)
         let dsc = await fetch(`${api.xterm.url}/api/img2txt/instant-describe?url=${tph}&key=${api.xterm.key}`)
         .then(response => response.json())
         cht.reply(dsc.prompt)
@@ -87,7 +100,7 @@ export default async function on({ cht, Exp, store, ev, is }) {
         if(cht.q == "list") return cht.reply(infos.tools.enhance)
         if(cht.q && !(["phox2","phox4","anix2","anix4","stdx2","stdx4","cf","text"].includes(cht.q))) return cht.reply("Type tidak ada! mungkin salah ketik!\n\n" +infos.tools.enhance)
         await cht.edit("Uploading image...", _key, true)
-        let imgurl = await catbox(media)
+        let imgurl = await TermaiCdn(media)
         let ai = await fetch(`${api.xterm.url}/api/tools/enhance/createTask?url=${imgurl}&type=${type}&key=${api.xterm.key}`)
         .then(response => response.json())
 
@@ -203,7 +216,7 @@ export default async function on({ cht, Exp, store, ev, is }) {
          await sleep(3000)
         // await cht.reply(`Code telah dikirimkan melalui chat pribadi!. Ketik .${random} Untuk melihat hasil`)
          await sleep(3000)
-         await Exp.sendMessage(owner[0], { text: evaled }, { quoted: cht })
+         await Exp.sendMessage(semder, { text: evaled }, { quoted: cht })
        } catch(e) {
            console.log(cht.quoted)
        }
@@ -254,7 +267,7 @@ export default async function on({ cht, Exp, store, ev, is }) {
     }, async({ media }) => {
        const _key = keys[sender]
          await cht.edit("Bntr...", _key)
-       let tph = await catbox(media)
+       let tph = await TermaiCdn(media)
          await cht.edit('Processing...', _key)
        let res = (await fetch(api.xterm.url + "/api/tools/image-removebg?url=" + tph + "&key=" + api.xterm.key).then(a => a.json())).data
          await Exp.sendMessage(id, { image: { url: res.url } }, { quoted: cht })
@@ -271,7 +284,7 @@ export default async function on({ cht, Exp, store, ev, is }) {
     }, async({ media }) => {
        const _key = keys[sender]
          await cht.edit("Bntr...", _key)
-       let tph = await catbox(media)
+       let tph = await TermaiCdn(media)
          await cht.edit('Processing...', _key)
        let res = await fetch(api.xterm.url + "/api/tools/object-detection?url=" + tph + "&key=" + api.xterm.key).then(a => a.json())
        let result = `Status: ${res.status}\n`;
@@ -296,8 +309,9 @@ export default async function on({ cht, Exp, store, ev, is }) {
         tag: 'tools',
         args: "Sertakan rgba atau hex untuk di konversi?",
         energy: 2
-    }, async() => {
-        if(cht.q.startsWith("rgb")) return cht.reply(func.rgbaToHex(cht.q))
-         cht.reply(func.hexToRgba(cht.q))
+    }, async({args}) => {
+        let [r,g,b,a] = args.match(/\((.*?)\)/)[1].split(',')
+        if(/rgb/.test(args)) return cht.reply(func.rgbaToHex(r,g,b,a))
+        func.hexToRgba(args)
 	})
 }

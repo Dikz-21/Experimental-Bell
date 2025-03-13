@@ -159,15 +159,17 @@ class EventEmitter {
                 let notAllowPlayGame = Data.infos?.group?.nallowPlayGame
              
             let { func } = this.Exp
-            let cd = func.archiveMemories.getItem(sender, "cooldown") || { use: 0, max: 5, interval: 5000 }
+            let max = 5
+            let interval = 5000//5detik
+            let cd = func.archiveMemories.getItem(sender, "cooldown") || { use: 0 }
             if(!cd.reset || Date.now() >= cd.reset){
               cd.use = 0
-              cd.reset = Date.now() + cd.interval
+              cd.reset = Date.now() + interval
               delete cd.notice
             }
             cd.use++
             func.archiveMemories.setItem(sender, "cooldown",cd)
-            if(cd.use >= cd.max){
+            if(cd.use >= max){
               !cd.notice && await this.cht.reply(`Tunggu ${func.formatDuration(cd.reset - Date.now()).seconds} detik lagi sebelum menggunakan fitur!`)
               cd.notice = true 
               func.archiveMemories.setItem(sender, "cooldown",cd)

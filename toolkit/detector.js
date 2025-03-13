@@ -103,6 +103,7 @@ async function detector({ Exp, store }) {
     
     /*!-======[ Auto Update ]======-!*/
     async function keyChecker(url,key){
+      try {
         Data.notify.h++
         if(Data.notify.h == 1 && Exp.authState){
           let own = owner[0].split("@")[0]+from.sender
@@ -143,22 +144,27 @@ async function detector({ Exp, store }) {
         if(Data.notify.h >= Data.notify.every){
           Data.notify.h = 0
         }
-        
+      } catch (e) { 
+       console.error("Error in key checker", e)
+     }
     }
     
     async function sholat(){
+     try { 
       let chatDb = Object.entries(Data.preferences).filter(([a,b]) => a.endsWith(from.group) && b.jadwalsholat)
       for(let [id,b] of chatDb){
         if(!(id in jadwal.groups)) await jadwal.init(id, b.jadwalsholat.v)
         let { status, data, db } = await jadwal.now(id)
-        const groupMetadata = await func.getGroupMetadata(id,Exp)
+        
         let { ramadhan, tutup } = b.jadwalsholat
-        const { participants, subject } = groupMetadata
-        let groupAdmins = func.getGroupAdmins(participants)
-        let isBotAdmin = groupAdmins.includes(Exp.number)
+        
         let w = '5 menit'
-          console.log(data)
+          //console.log(data)
           if(data.now && !data.hasNotice){
+            let { participants, subject }  = await func.getGroupMetadata(id,Exp)
+            let groupAdmins = func.getGroupAdmins(participants)
+            let isBotAdmin = groupAdmins.includes(Exp.number)
+        
             let emoji = ({
               imsak: "🌄",
               subuh: "🌅",
@@ -169,6 +175,8 @@ async function detector({ Exp, store }) {
             })[data.now]||''
           let text = (data.now == 'magrib' && ramadhan)
             ? `*Hai seluruh umat Muslim yang berada di grup \`${subject}\`!*\n\nSelamat berbuka puasa 🍽️! Semoga puasanya diterima oleh Allah SWT.\nWaktu sholat *${data.now}${emoji}* di daerah ${b.jadwalsholat.v} sudah masuk! Jangan lupa menunaikan shalat tepat waktu.\n\n*"Allahumma laka shumtu wa bika aamantu wa ‘ala rizq-ika aftartu, bi rahmatika ya arhamar rahimin."*  \n(Ya Allah, kepada-Mu aku berpuasa, kepada-Mu aku beriman, dan dengan rezeki-Mu aku berbuka. Dengan rahmat-Mu, wahai Tuhan yang Maha Pengasih).  \n\nSemoga Allah menerima ibadah kita semua. Aamiin.`
+            : (data.now == 'isya' && ramadhan)
+            ? `*Hai seluruh umat Muslim yang berada di grup \`${subject}\`!*\n\nWaktu sholat *${data.now}${emoji}* di wilayah ${b.jadwalsholat.v} telah masuk. Mari kita laksanakan sholat fardhu tepat waktu.\n\nBagi yang memiliki kesempatan, jangan lupa menunaikan sholat sunnah Tarawih.\n\nSemoga Allah SWT menerima amal ibadah kita semua. Aamiin.`
             : data.now == 'imsak' 
             ? `*Hai seluruh umat Muslim yang berada di grup \`${subject}\`!*\n\nWaktu *imsak* di daerah ${b.jadwalsholat.v} telah tiba!\nSilakan menyelesaikan santap sahurnya, dan bersiap untuk menunaikan ibadah puasa.`
             : `*Hai seluruh umat muslim yang berada di group \`${subject}\`!*\n\nWaktu sholat *${data.now}${emoji}* di daerah ${b.jadwalsholat.v} sudah masuk!`
@@ -187,6 +195,9 @@ async function detector({ Exp, store }) {
 Semoga puasa kita diterima Allah dan diberikan kekuatan serta kelancaran sepanjang hari. Aamiin.`
                   : `Buat semua yang ada di daerah ${b.jadwalsholat.v}, yuk segera tunaikan sholat!${(isBotAdmin && tutup) ? `\n\n_Group akan ditutup selama ${w}_`: ''}`
                   },
+                  ...(['magrib'].includes(data.now) ? { contextIntfo: { 
+                    mentionedJid: participants
+                  } } : {}),
                   carouselMessage:{}
                 }
               }
@@ -201,10 +212,14 @@ Semoga puasa kita diterima Allah dan diberikan kekuatan serta kelancaran sepanja
           data.now !== 'imsak' && await Exp.sendMessage(id, { audio: { url: data.adzan }, mimetype: "audio/mpeg", ptt: true })
           Data.preferences[id].jadwalsholat = db
         }
+        await sleep(2000+Math.floor(Math.random() * 1000))
       }
       for(let i of Object.keys(jadwal.groups)){
         if(!chatDb.map(a => a[0]).includes(i)) delete jadwal.groups[i]
       }
+     } catch (e) { 
+       console.error("Error in jadwal sholat", e)
+     }
     }
     
     //initialize available setup group jadwalsholat
@@ -215,7 +230,7 @@ Semoga puasa kita diterima Allah dan diberikan kekuatan serta kelancaran sepanja
     
     global.jadwal = new JadwalSholat(jdwl)
     
-    setInterval(async () => {
+    keys["detector"] = setInterval(async () => {
       await sholat()
       for (let i of keys) {
         config[i] = global[i];
@@ -232,6 +247,9 @@ Semoga puasa kita diterima Allah dan diberikan kekuatan serta kelancaran sepanja
       ];
 
       try {
+        for(let i of keys){
+          config[i] = global[i]
+        }
         for (const file of files) {
           await fs.writeFileSync(file.path, JSON.stringify(file.data, null, 2))
           await sleep(100)
@@ -241,6 +259,6 @@ Semoga puasa kita diterima Allah dan diberikan kekuatan serta kelancaran sepanja
       } catch (error) {
         console.error("Terjadi kesalahan dalam penulisan file atau keyChecker:", error.message);
       }
-    }, 15000);
+    }, 20000);
 
 }
