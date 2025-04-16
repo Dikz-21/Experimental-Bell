@@ -1,6 +1,9 @@
 const {
 	exec
 } = await "child".import()
+const {
+  getContentType
+} = "baileys".import()
 const util = await "util".import()
 const _exec = util.promisify(exec)
 const fs = "fs".import()
@@ -104,8 +107,12 @@ async function In({ cht,Exp,store,is,ev }) {
 		  }
 		  return false
 		})(sender) : false
+
 		let isConfess = Boolean(conff)
-		let isAfkBack = Boolean(is.afk)
+		let isAfkBack = Boolean(is.afk)		
+		let isAntiTagOwner = cfg.antitagowner && !is.owner && cht?.msg?.includes('@') && cht.mention.some(m => owner.some(o => m.includes(o)))		
+		let Response = cht.msg ? Object.keys(Data.response).find(a => a == cht.msg.toLowerCase().replace(/ /g,'')) : null
+		let isResponse = Response in Data.response
 
 		switch (!0) {
 		    case isTagAfk: 
@@ -255,7 +262,7 @@ async function In({ cht,Exp,store,is,ev }) {
 							botfullname,
 							botnickname
 						}),
-						image: isImage,
+						image: await func.minimizeImage(isImage),
 						commands: [{
 								"description": "Jika perlu atau kamu sedang ingin membalas dengan suara",
 								"output": {
@@ -550,13 +557,30 @@ async function In({ cht,Exp,store,is,ev }) {
 							             "query": "isi pertanyaan yg dimaksud dalam pesan"
 							         }
 							    }
-							}
+							},
+							{
+								"description": "Jika pesan adalah permintaan melakukan pengeditan atau perubahan pada gambar",
+								"output": {
+									"cmd": "img2img",
+									"cfg": {
+										"prompt": "isi teks prompt yang menjelaskan perubahan yang diinginkan pada gambar. Tulis dalam bahasa Inggris"
+									}
+								}
+							},
+							{
+								"description": "Jika pesan adalah permintaan untuk mengubah gambar menjadi video atau melakukan penganimasian gambar",
+								"output": {
+ 									"cmd": "img2video",
+									"cfg": {
+										"prompt": "Jelaskan animasi atau transformasi video yang diinginkan dari gambar. Tentukan elemen seperti gerakan, transisi, atau efek. Tulis dalam bahasa Inggris."
+									}
+								}
+							},
 						]
 					})
 					let config = _ai?.data || {}
 					await func.addAiResponse()
 					let noreply = false
-					console.log(config)
 					switch (config?.cmd) {
 					    case "sticker":
 					        await cht.reply(config?.msg || "ok")
@@ -616,13 +640,16 @@ async function In({ cht,Exp,store,is,ev }) {
 							cfg.models = cfg.models || { checkpoint: 1552, loras: [2067] }
 							let { checkpoint, loras } = cfg.models
 							cht.q = `${checkpoint}${JSON.stringify(loras)}|${config?.cfg?.prompt}|blurry, low quality, low resolution, deformed, distorted, poorly drawn, bad anatomy, bad proportions, unrealistic, oversaturated, underexposed, overexposed, watermark, text, logo, cropped, cluttered background, cartoonish, bad face, double face, abnormal`
-							console.log(cht.q)
 							await cht.reply(config?.msg || "ok")
 							return ev.emit("txt2img")
 						case 'txt2img':
 							cht.q = (config?.cfg?.prompt || "")
 							await cht.reply(config?.msg || "ok")
 							return ev.emit("dalle3")
+						case 'img2img':
+							cht.q = (config?.cfg?.prompt || "")
+							await cht.reply(config?.msg || "ok")
+							return ev.emit("edit")
 						case 'pinterest':
 							noreply = true
 							await cht.reply(config?.msg || "ok")
@@ -636,6 +663,10 @@ async function In({ cht,Exp,store,is,ev }) {
 							noreply = true
 							cht.q = "open"
 							return ev.emit("group")
+						case 'img2video':
+							cht.q = (config?.cfg?.prompt || "")
+							await cht.reply(config?.msg || "ok")
+							return ev.emit("i2v")
 					}
 
 					if (config?.energy && cfg.ai_interactive.energy) {
@@ -697,6 +728,33 @@ async function In({ cht,Exp,store,is,ev }) {
 		    case isSalam:
 			    cht.reply("Wa'alaikumussalaam...")
 			   break
+			   
+			case isAntiTagOwner: {
+			    let message = Data.response['tagownerresponse']
+			    if(message){
+			      let type = getContentType(message)
+			      message[type].contextInfo = {
+                     stanzaId: cht.key.id,
+                     participant: cht.key.participant||cht.quoted?.key.remoteJid,
+                     quotedMessage: cht,
+                  }
+                  Exp.relayMessage(cht.id, message, {})
+			    } else {
+			      cht.reply('😡')
+			    }
+			    } break
+			
+			case isResponse: {
+			      let message = Data.response[Response]
+			      let type = getContentType(message)
+			      message[type].contextInfo = {
+                     stanzaId: cht.key.id,
+                     participant: cht.key.participant||cht.quoted?.key.remoteJid,
+                     quotedMessage: cht,
+                     mentionedJid: message[type]?.contextInfo?.mentionedJid
+                  }
+                  Exp.relayMessage(cht.id, message, {})
+			    } break
 		}
 	} catch (error) {
 		console.error("Error in Interactive:", error)
