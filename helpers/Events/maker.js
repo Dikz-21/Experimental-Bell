@@ -94,11 +94,14 @@ export default async function on({
 	}, async ({
 		media
 	}) => {
-		let [txt1, txt2] = cht.q.split("|")
-		let tmp = await TermaiCdn(media)
-        let ats = (txt2 ? txt1 : "_").replace(/ /g,"_")
-        let bwh = (txt2 ? txt2 : txt1).replace(/ /g, "_")
-        let buff = await func.getBuffer(`https://api.memegen.link/images/custom/${ats}/${bwh}.png?background=${tmp}`)
+	   let tmp = await TermaiCdn(media)
+	   let [txt1, txt2] = cht.q.split("|");
+           let ats = (txt2 ? txt1 : "_").replace(/ /g, "_").replace(/\?/g, '~q').replace(/&/g, '~a');
+           let bwh = (txt2 ? txt2 : txt1).replace(/ /g, "_").replace(/\?/g, '~q').replace(/&/g, '~a');
+
+	   let rurl = `https://api.memegen.link/images/custom/${ats}/${bwh}.png?background=${tmp}`
+	   let buff = await func.getBuffer(rurl);
+
 		let res = await exif["writeExifImg"](buff, {
 			packname: 'My sticker',
 			author: 'Ⓒ' + cht.pushName
@@ -169,7 +172,6 @@ export default async function on({
 		if (!args) return cht.reply(`Example: ${cht.prefix+cht.cmd} pink hello\n\nColor list:\n- ${Object.keys(colors).join("\n- ")}`)
 
 		let [color, ...message] = args.split(' ');
-		message = message.join(' ') || args;
 
 		let avatar;
 		try {
@@ -195,7 +197,7 @@ export default async function on({
 						url: avatar
 					}
 				},
-				text: message,
+				text: colors[color] ? message.join(' ') : args,
 				'm.replyMessage': {}
 			}]
 		};

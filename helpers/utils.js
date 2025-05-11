@@ -46,7 +46,7 @@ async function utils({ Exp, cht, is, store }) {
         cht.cmd = cht?.msg?.startsWith(cht.prefix) 
         ? await (async() => {
             let cmd = cht?.msg?.slice(1)?.toLowerCase()?.trim()?.split(/ +/).shift();
-            if (cfg.similarCmd && Data.events[cmd] === undefined) {
+            if (cfg.similarCmd && Object.keys(Data.events).length !== 0 && Data.events[cmd] === undefined) {
                 let events = Object.keys(Data.events).filter(a => cmd.length >= a.length && Math.abs(cmd.length - a.length) <= 2);
                 let similar = cmd.length <= 4 ? 0.3 : cmd.length <= 7 ? 0.4 : cmd.length <= 10 ? 0.5 : 0.6;
                 return (func.getTopSimilar(await func.searchSimilarStrings(cmd, events, similar))).item;
@@ -163,6 +163,7 @@ async function utils({ Exp, cht, is, store }) {
           reaction: cht.reaction,
           afk: is.group ? memories.getItem(sender, "afk") : false,
           mute: groupDb?.mute && !is.owner && !is.me,
+          onlyadmin: groupDb?.onlyadmin && !is.owner && !is.me && !is.groupAdmins,
           antiTagall: groupDb?.antitagall && (cht.mention?.length >= 5) && !is.owner && !is.groupAdmins && (url?.length < 1),
           antibot: groupDb?.antibot && !is.owner && !is.groupAdmins && is.baileys && is.botAdmin,
           antilink: groupDb?.antilink && (url.length > 0) && url.some(a => groupDb?.links?.some(b => a.includes(b))) && !is.me && !is.owner && !is.groupAdmins && is.botAdmin  
